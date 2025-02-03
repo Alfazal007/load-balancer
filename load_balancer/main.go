@@ -142,26 +142,66 @@ func main() {
 	wg.Wait()
 }
 
-/* The usage of weighted round robin would look something like this
+/*
+The usage of weighted round robin would look something like this
+
+	func main() {
+		servers_list := make([]string, 0)
+		servers_list = append(servers_list, "1")
+		servers_list = append(servers_list, "2")
+		servers_list = append(servers_list, "3")
+		servers_list = append(servers_list, "4")
+		servers := algorithms.ServersStruct{
+			Servers: servers_list,
+		}
+
+		weightedRR := algorithms.WeightedRoundRobin{
+			Weights: []int{1, 2, 3, 4},
+		}
+		weightedRR.InitializeServers(&servers)
+		i := 0
+		for i < 15 {
+			current_server := weightedRR.GetServer()
+			fmt.Println(current_server)
+			i++
+		}
+	}
+*/
+
+/*
 func main() {
 	servers_list := make([]string, 0)
 	servers_list = append(servers_list, "1")
 	servers_list = append(servers_list, "2")
-	servers_list = append(servers_list, "3")
-	servers_list = append(servers_list, "4")
-	servers := algorithms.ServersStruct{
-		Servers: servers_list,
-	}
-
-	weightedRR := algorithms.WeightedRoundRobin{
-		Weights: []int{1, 2, 3, 4},
-	}
-	weightedRR.InitializeServers(&servers)
+	number_of_conn := make([]int, 0)
 	i := 0
-	for i < 15 {
-		current_server := weightedRR.GetServer()
-		fmt.Println(current_server)
+	for i < len(servers_list) {
+		number_of_conn = append(number_of_conn, 0)
 		i++
 	}
+
+	leastConnectionAlgoStruct := algorithms.LeastConnectionAlgo{
+		ServerUrl:           servers_list,
+		NumberOfConnections: number_of_conn,
+	}
+
+	connectionUrls := make([]string, 0)
+	i = 0
+	for i < 20 {
+		// call this when establishing a connection with the server
+		connectionUrls = append(connectionUrls, leastConnectionAlgoStruct.Connect())
+		i++
+	}
+	i = 0
+	for i < 10 {
+		// call this in defer after establishing connection with server
+		leastConnectionAlgoStruct.Disconnect("1")
+		i++
+	}
+	for i < 20 {
+		connectionUrls = append(connectionUrls, leastConnectionAlgoStruct.Connect())
+		i++
+	}
+	fmt.Println(connectionUrls)
 }
 */
