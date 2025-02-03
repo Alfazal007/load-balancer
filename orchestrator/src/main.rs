@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{env, time::Duration};
 
 use sqlx::postgres::PgPoolOptions;
 use tokio::time::sleep;
@@ -8,9 +8,11 @@ pub mod models;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    dotenvy::dotenv().expect("Error loading env file");
+    let database_url = env::var("DATABASE_URL").expect("database url not provided");
     let pool_result = PgPoolOptions::new()
         .max_connections(2)
-        .connect("postgresql://postgres:mysecretpassword@localhost:5432/postgres")
+        .connect(&database_url)
         .await
         .expect("Issue connecting to the database");
 
