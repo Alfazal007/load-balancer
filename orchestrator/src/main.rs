@@ -1,0 +1,32 @@
+use std::time::Duration;
+
+use sqlx::postgres::PgPoolOptions;
+use tokio::time::sleep;
+
+pub mod health;
+pub mod models;
+
+#[tokio::main]
+async fn main() -> std::io::Result<()> {
+    let pool_result = PgPoolOptions::new()
+        .max_connections(2)
+        .connect("postgresql://postgres:mysecretpassword@localhost:5432/postgres")
+        .await
+        .expect("Issue connecting to the database");
+
+    let mut server_urls = crate::models::active_urls::get_db_state(&pool_result).await;
+    if server_urls.is_empty() {
+        panic!("There are no api servers to load balance on");
+    }
+
+    loop {
+        sleep(Duration::from_secs(30)).await;
+        crate::health::drain_servers::check_and_remove_servers(&mut server_urls, &pool_result)
+            .await;
+        if server_urls.is_empty() {
+            panic!("There are no api servers to load balance on");
+        }
+        println!("{:?}", server_urls);
+        println!("Reached here");
+    }
+}
