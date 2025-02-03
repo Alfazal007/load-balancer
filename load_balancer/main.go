@@ -141,3 +141,27 @@ func main() {
 	}()
 	wg.Wait()
 }
+
+/* The usage of weighted round robin would look something like this
+func main() {
+	servers_list := make([]string, 0)
+	servers_list = append(servers_list, "1")
+	servers_list = append(servers_list, "2")
+	servers_list = append(servers_list, "3")
+	servers_list = append(servers_list, "4")
+	servers := algorithms.ServersStruct{
+		Servers: servers_list,
+	}
+
+	weightedRR := algorithms.WeightedRoundRobin{
+		Weights: []int{1, 2, 3, 4},
+	}
+	weightedRR.InitializeServers(&servers)
+	i := 0
+	for i < 15 {
+		current_server := weightedRR.GetServer()
+		fmt.Println(current_server)
+		i++
+	}
+}
+*/
