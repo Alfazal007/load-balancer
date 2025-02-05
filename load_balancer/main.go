@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"sync"
 
@@ -15,6 +16,8 @@ import (
 	"github.com/Alfazal007/load-balancer/internal/database"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -25,7 +28,18 @@ type Message struct {
 
 var ctx = context.Background()
 
+var promGauge = prometheus.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Name: "active_tcp_connections",
+		Help: "Shows the current number of active tcp connections",
+	},
+	[]string{},
+)
+
 func main() {
+	// register to prometheus
+	prometheus.MustRegister(promGauge)
+
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -49,6 +63,7 @@ func main() {
 	})
 
 	apiCfg := algorithms.ApiCfg{DB: database.New(conn), Rdb: rdb}
+	fmt.Println("Connected to the database")
 
 	serverUpdateChannel := apiCfg.Rdb.Subscribe(ctx, "server-update")
 	serversFromDB, err := apiCfg.DB.GetServers(ctx)
@@ -114,6 +129,8 @@ func main() {
 				log.Fatal("Issue starting the load balancer")
 				continue
 			}
+			// got a client so increase
+			promGauge.WithLabelValues().Inc()
 
 			go func(client net.Conn) {
 				serverCount := serverStruct.CountServers()
@@ -122,21 +139,38 @@ func main() {
 				server, err := net.Dial("tcp", serverUrl)
 				if err != nil {
 					client.Close()
+					// decrement as server could not be connected
+					promGauge.WithLabelValues().Dec()
 					return
 				}
+				var wgPerConn sync.WaitGroup
+				wgPerConn.Add(2)
 
 				go func() {
 					defer client.Close()
 					defer server.Close()
+					defer wgPerConn.Done()
 					io.Copy(server, client)
 				}()
 
 				go func() {
 					defer client.Close()
 					defer server.Close()
+					defer wgPerConn.Done()
 					io.Copy(client, server)
 				}()
+
+				wgPerConn.Wait()
+				promGauge.WithLabelValues().Dec()
 			}(client)
+		}
+	}()
+
+	http.Handle("/metrics", promhttp.Handler())
+	go func() {
+		fmt.Println("Starting HTTP server for Prometheus metrics on port 8080...")
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			log.Fatal("Error starting HTTP server for Prometheus metrics:", err)
 		}
 	}()
 	wg.Wait()
