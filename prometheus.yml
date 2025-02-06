@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'load-balancer-app'
+    static_configs:
+      - targets: ['node-app-1:8000', 'node-app-2:8000', 'load-balancer-app1:8080', 'load-balancer-app2:8080']

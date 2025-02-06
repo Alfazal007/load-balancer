@@ -122,33 +122,23 @@ func main() {
 	go func() {
 		defer wg.Done()
 		conn, err := net.Listen("tcp", fmt.Sprint("0.0.0.0:", port))
-		fmt.Println("Listenting")
 		if err != nil {
 			log.Fatal("Issue starting the load balancer")
 		}
 		defer conn.Close()
 		for {
-			fmt.Println("Port is ", port)
-			fmt.Println("Inside the for loop")
 			client, err := conn.Accept()
-			fmt.Println("Got a connection")
 			if err != nil {
 				fmt.Println(err)
-				log.Fatal("Issue starting the load balancer")
 				continue
 			}
 			// got a client so increase
 			promGauge.WithLabelValues().Inc()
-
 			go func(client net.Conn) {
 				serverCount := serverStruct.CountServers()
 				serverUrl := roundrobinStruct.GetServerUrl(&serverStruct, serverCount)
-				fmt.Println(serverUrl)
 				server, err := net.Dial("tcp", serverUrl)
-				fmt.Println("Git a connection and a server url that is ", serverUrl)
 				if err != nil {
-					fmt.Println(err)
-					fmt.Println("Issue nconnectinbg to the cserver url")
 					client.Close()
 					// decrement as server could not be connected
 					promGauge.WithLabelValues().Dec()

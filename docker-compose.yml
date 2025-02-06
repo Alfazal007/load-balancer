@@ -1,0 +1,82 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - monitoring
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+    depends_on:
+      - redis
+
+  node-app-1:
+    image: server_to_balance-node-app
+    ports:
+      - "8000:8000"
+    networks:
+      - monitoring
+    env_file:
+      - .envv
+
+  node-app-2:
+    image: server_to_balance-node-app
+    ports:
+      - "8001:8000"
+    networks:
+      - monitoring
+    env_file:
+      - .envv
+
+  load-balancer-app1:
+    image: load_balancer-load-balancer-app
+    ports:
+      - "3000:3000"
+      - "8080:8080"
+    networks:
+      - monitoring
+    env_file:
+      - .env
+    depends_on:
+      - node-app-1
+      - node-app-2
+      - redis
+
+  load-balancer-app2:
+    image: load_balancer-load-balancer-app
+    ports:
+      - "3001:3000"
+      - "8081:8080"
+    networks:
+      - monitoring
+    env_file:
+      - .env
+    depends_on:
+      - node-app-1
+      - node-app-2
+      - redis
+
+  orchestrator:
+    image: orchestrator
+    networks:
+      - monitoring
+    env_file:
+      - .env_orchestrator
+    depends_on:
+      - node-app-1
+      - node-app-2
+      - load-balancer-app1
+      - load-balancer-app2
+      - redis
+
+networks:
+  monitoring:
+    driver: bridge
