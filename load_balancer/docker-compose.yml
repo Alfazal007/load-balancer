@@ -1,15 +1,16 @@
 version: '3.8'
-
 services:
-  load-balancer-app:
-    build: ./
+  redis:
+    image: redis:latest
     ports:
-      - "3000:3000"
-      - "8080:8080"
+      - "6379:6379"
     networks:
       - monitoring
-    env_file:
-      - .env
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 30s
+      retries: 5
 
   prometheus:
     image: prom/prometheus:latest
@@ -19,6 +20,32 @@ services:
       - "9090:9090"
     networks:
       - monitoring
+    depends_on:
+      - redis
+
+  node-app-1:
+    image: server_to_balance-node-app
+    ports:
+      - "8000:8000"
+    networks:
+      - monitoring
+    env_file:
+      - .envv
+
+  load-balancer-app:
+    build: ./
+    ports:
+      - "3000:3000"
+      - "8080:8080"
+    networks:
+      - monitoring
+    env_file:
+      - .env
+    depends_on:
+      - node-app-1
+      - redis  # This should be listed as a simple service name, not a dictionary
 
 networks:
   monitoring:
+    driver: bridge
+

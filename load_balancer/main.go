@@ -14,7 +14,6 @@ import (
 
 	"github.com/Alfazal007/load-balancer/algorithms"
 	"github.com/Alfazal007/load-balancer/internal/database"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -39,12 +38,12 @@ var promGauge = prometheus.NewGaugeVec(
 func main() {
 	// register to prometheus
 	prometheus.MustRegister(promGauge)
-
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
+	/*
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal("Error loading .env file")
+		}
+	*/
 	postgresUrl := os.Getenv("DATABASE_URL")
 	redisUrl := os.Getenv("REDIS_URL")
 	port := os.Getenv("PORT")
@@ -57,7 +56,9 @@ func main() {
 	if err != nil {
 		log.Fatal("Error opening database connection", err)
 	}
-
+	if err := conn.Ping(); err != nil {
+		log.Fatal("Error connecting to the database: yooooooo", err)
+	}
 	rdb := redis.NewClient(&redis.Options{
 		Addr: redisUrl,
 	})
@@ -68,7 +69,7 @@ func main() {
 	serverUpdateChannel := apiCfg.Rdb.Subscribe(ctx, "server-update")
 	serversFromDB, err := apiCfg.DB.GetServers(ctx)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Ther error is here", err)
 		log.Fatal("Issue connecting to the database server")
 	}
 
@@ -77,6 +78,8 @@ func main() {
 	for _, server := range serversFromDB {
 		servers = append(servers, server.ServerUrl)
 	}
+
+	fmt.Println(servers)
 
 	serverStruct := algorithms.ServersStruct{
 		Servers: servers,
@@ -118,14 +121,19 @@ func main() {
 
 	go func() {
 		defer wg.Done()
-		conn, err := net.Listen("tcp", fmt.Sprint("127.0.0.1:", port))
+		conn, err := net.Listen("tcp", fmt.Sprint("0.0.0.0:", port))
+		fmt.Println("Listenting")
 		if err != nil {
 			log.Fatal("Issue starting the load balancer")
 		}
 		defer conn.Close()
 		for {
+			fmt.Println("Port is ", port)
+			fmt.Println("Inside the for loop")
 			client, err := conn.Accept()
+			fmt.Println("Got a connection")
 			if err != nil {
+				fmt.Println(err)
 				log.Fatal("Issue starting the load balancer")
 				continue
 			}
@@ -137,7 +145,10 @@ func main() {
 				serverUrl := roundrobinStruct.GetServerUrl(&serverStruct, serverCount)
 				fmt.Println(serverUrl)
 				server, err := net.Dial("tcp", serverUrl)
+				fmt.Println("Git a connection and a server url that is ", serverUrl)
 				if err != nil {
+					fmt.Println(err)
+					fmt.Println("Issue nconnectinbg to the cserver url")
 					client.Close()
 					// decrement as server could not be connected
 					promGauge.WithLabelValues().Dec()
