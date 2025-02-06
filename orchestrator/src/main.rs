@@ -8,7 +8,6 @@ pub mod models;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    println!("Here it is being printed");
     //    dotenvy::dotenv().expect("Error loading env file");
     let database_url = env::var("DATABASE_URL").expect("database url not provided");
     let pool_result = PgPoolOptions::new()
