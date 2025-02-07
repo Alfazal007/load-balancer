@@ -77,6 +77,14 @@ services:
       - load-balancer-app2
       - redis
 
+  node_exporter: # This is not be in a docker container in prod but rather installed directly on the host system
+    image: prom/node-exporter
+    container_name: node_exporter
+    networks:
+      - monitoring
+    ports:
+      - "9100:9100"
+
 networks:
   monitoring:
     driver: bridge

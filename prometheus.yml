@@ -4,4 +4,4 @@ global:
 scrape_configs:
   - job_name: 'load-balancer-app'
     static_configs:
-      - targets: ['node-app-1:8000', 'node-app-2:8000', 'load-balancer-app1:8080', 'load-balancer-app2:8080']
+      - targets: ['node-app-1:8000', 'node-app-2:8000', 'load-balancer-app1:8080', 'load-balancer-app2:8080', 'node_exporter:9100']

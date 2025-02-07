@@ -1,5 +1,6 @@
 use std::{env, time::Duration};
 
+use health::query_prom::query_prom;
 use sqlx::postgres::PgPoolOptions;
 use tokio::time::sleep;
 
@@ -28,7 +29,9 @@ async fn main() -> std::io::Result<()> {
         if server_urls.is_empty() {
             panic!("There are no api servers to load balance on");
         }
+        // check the usage of items
+        // based on gauge number increase or decrease the load balancer count
         println!("{:?}", server_urls);
-        println!("Reached here");
+        //query_prom().await;
     }
 }
