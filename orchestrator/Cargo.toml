@@ -10,3 +10,4 @@ sqlx = { version = "0.8.3", features = ["postgres", "runtime-async-std-native-tl
 tokio = { version = "1.43.0", features = ["full"] }
 dotenvy = "0.15.7"
 prometheus-http-query = "0.8.3"
+bollard = "0.18.1"
