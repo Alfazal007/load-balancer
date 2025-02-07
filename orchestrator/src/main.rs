@@ -1,6 +1,5 @@
 use std::{env, time::Duration};
 
-use health::query_prom::query_prom;
 use sqlx::postgres::PgPoolOptions;
 use tokio::time::sleep;
 
