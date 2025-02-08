@@ -1,5 +1,7 @@
 use std::{env, sync::Arc, time::Duration};
 
+use health::query_prom::query_prom_need_more;
+use models::server_model::Server;
 use sqlx::postgres::PgPoolOptions;
 use tokio::{sync::Mutex, time::sleep};
 
@@ -32,9 +34,34 @@ async fn main() -> std::io::Result<()> {
         if server_urls.lock().await.is_empty() {
             panic!("There are no api servers to load balance on");
         }
-        // check the usage of items
-        // based on gauge number increase or decrease the load balancer count
         println!("{:?}", server_urls.lock().await);
-        //query_prom().await;
+
+        if server_urls.lock().await.len() <= 3 {
+            let need_more_servers = query_prom_need_more().await;
+            if need_more_servers && server_urls.lock().await.len() < 3 {
+                let added_new_server = docker::add_server::add_server().await;
+                if added_new_server.is_ok() {
+                    health::add_new_server_db::add_new_server_to_db(
+                        "node-app-3:8000",
+                        &pool_result,
+                    )
+                    .await;
+                    server_urls.lock().await.push(Server {
+                        id: -1,
+                        server_url: "node-app-3:8000".to_string(),
+                    });
+                }
+            } else if server_urls.lock().await.len() == 3 && !need_more_servers {
+                let remove_res = health::remove_server_from_db::remove_new_server_to_db(
+                    "node-app-3:8000",
+                    &pool_result,
+                )
+                .await;
+                server_urls.lock().await.pop();
+                if remove_res {
+                    docker::remove_server::remove_server().await;
+                }
+            }
+        }
     }
 }
