@@ -81,6 +81,21 @@ services:
       - load-balancer-app2
       - redis
 
+  dbpoller:
+    image: dbpoller
+    networks:
+      - monitoring
+    env_file:
+      - .env_dbpoller
+    depends_on:
+      - orchestrator
+      - node-app-1
+      - node-app-2
+      - load-balancer-app1
+      - load-balancer-app2
+      - redis
+    restart: always
+
   node_exporter: # This is not be in a docker container in prod but rather installed directly on the host system
     image: prom/node-exporter
     container_name: node_exporter

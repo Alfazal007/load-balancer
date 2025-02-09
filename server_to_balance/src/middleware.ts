@@ -8,6 +8,7 @@ const requestCounter = new client.Counter({
 });
 
 export const promMiddleware = (req: Request, res: Response, next: NextFunction) => {
+	console.log("Request came to ", process.env.PORT);
 	res.on("finish", () => {
 		requestCounter.inc({
 			method: req.method,
